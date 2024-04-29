@@ -15,6 +15,7 @@
 * [添加cookie与不添加cookie的区别（可选）](#添加cookie与不添加cookie的区别可选)
 * [如何获取cookie（可选）](#如何获取cookie可选)
 * [如何检测cookie是否有效（可选）](#如何检测cookie是否有效可选)
+* [视频时长获取](#视频时长获取)
 
 ## 功能
 
@@ -905,3 +906,23 @@ services:
 
 1. 在`const.py`文件中，将`'NOTIFY': False`中的`False`设为`True`；
 2. 将`'PUSH_KEY': ''`的`''`替换为`'<你的push_key>'`
+
+### 视频时长获取
+需要`pip install moviepy`，同时需要保证有ffmpeg，但是mac用ffmpeg好像有问题，在下载了ffmpeg的可执行程序并放在一个不会有变动的地方之后，需要在文件开始声明，所以路径的读取是这样：
+```
+import os
+os.environ["IMAGEIO_FFMPEG_EXE"] = "/Users/xxx/FFmpeg/bin/ffmpeg"
+```
+
+然后
+```
+from moviepy.editor import VideoFileClip
+filepath = "xxx" 
+
+video = VideoFileClip(filepath)
+duration = video.duration
+video.close()
+
+print(duration)
+```
+
