@@ -29,6 +29,9 @@ from util import csvutil
 from util.dateutil import convert_to_days_ago
 from util.notify import push_deer
 
+os.environ["IMAGEIO_FFMPEG_EXE"] = "/Users/pangyusheng/FFmpeg/bin/ffmpeg"
+from moviepy.editor import VideoFileClip
+
 warnings.filterwarnings("ignore")
 
 # 如果日志文件夹不存在，则创建
@@ -616,6 +619,7 @@ class Weibo(object):
                 for i, url in enumerate(url_list):
                     file_name = file_prefix + "_" + str(i + 1) + file_suffix
                     file_path = file_dir + os.sep + file_name
+                    print("File Path = {}".format(file_path))
                     self.download_one_file(url, file_path, file_type, w["id"])
             else:
                 if urls.endswith(".mov"):
@@ -623,6 +627,7 @@ class Weibo(object):
                 file_name = file_prefix + file_suffix
                 file_path = file_dir + os.sep + file_name
                 self.download_one_file(urls, file_path, file_type, w["id"])
+            return file_path
 
     def download_files(self, file_type, weibo_type, wrote_count):
         """下载文件(图片/视频)"""
@@ -650,7 +655,14 @@ class Weibo(object):
                     else:
                         continue
                 if w.get(key):
-                    self.handle_download(file_type, file_dir, w.get(key), w)
+                    # print("w.get(key) = {}".format(w.get(key)))
+                    path = self.handle_download(file_type, file_dir, w.get(key), w)
+                    if(not file_type == 'img'):
+                        video = VideoFileClip(path)
+                        duration = video.duration
+                        w['video_path'] = path
+                        w['video_length'] = str(duration)
+                        
             logger.info("%s下载完毕,保存路径:", describe)
             logger.info(file_dir)
         except Exception as e:
@@ -781,6 +793,8 @@ class Weibo(object):
         weibo["article_url"] = self.get_article_url(selector)
         weibo["pics"] = self.get_pics(weibo_info)
         weibo["video_url"] = self.get_video_url(weibo_info)
+        weibo["video_path"] = " "
+        weibo["video_length"] = " "
         weibo["location"] = self.get_location(selector)
         weibo["created_at"] = weibo_info["created_at"]
         weibo["source"] = weibo_info["source"]
@@ -1322,6 +1336,8 @@ class Weibo(object):
             "头条文章url",
             "原始图片url",
             "视频url",
+            "视频存放位置",
+            "视频长度",
             "位置",
             "日期",
             "工具",
@@ -1904,16 +1920,16 @@ class Weibo(object):
     def write_data(self, wrote_count):
         """将爬到的信息写入文件或数据库"""
         if self.got_count > wrote_count:
-            if "csv" in self.write_mode:
-                self.write_csv(wrote_count)
-            if "json" in self.write_mode:
-                self.write_json(wrote_count)
-            if "mysql" in self.write_mode:
-                self.weibo_to_mysql(wrote_count)
-            if "mongo" in self.write_mode:
-                self.weibo_to_mongodb(wrote_count)
-            if "sqlite" in self.write_mode:
-                self.weibo_to_sqlite(wrote_count)
+            # if "csv" in self.write_mode:
+            #     self.write_csv(wrote_count)
+            # if "json" in self.write_mode:
+            #     self.write_json(wrote_count)
+            # if "mysql" in self.write_mode:
+            #     self.weibo_to_mysql(wrote_count)
+            # if "mongo" in self.write_mode:
+            #     self.weibo_to_mongodb(wrote_count)
+            # if "sqlite" in self.write_mode:
+            #     self.weibo_to_sqlite(wrote_count)
             if self.original_pic_download:
                 self.download_files("img", "original", wrote_count)
             if self.original_video_download:
@@ -1923,7 +1939,16 @@ class Weibo(object):
                     self.download_files("img", "retweet", wrote_count)
                 if self.retweet_video_download:
                     self.download_files("video", "retweet", wrote_count)
-
+            if "csv" in self.write_mode:
+                self.write_csv(wrote_count)
+            if "json" in self.write_mode:
+                self.write_json(wrote_count)
+            if "mysql" in self.write_mode:
+                self.weibo_to_mysql(wrote_count)
+            if "mongo" in self.write_mode:
+                self.weibo_to_mongodb(wrote_count)
+            if "sqlite" in self.write_mode:
+                self.weibo_to_sqlite(wrote_count)                    
     def get_pages(self):
         """获取全部微博"""
         try:
